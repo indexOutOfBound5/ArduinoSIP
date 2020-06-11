@@ -187,6 +187,10 @@ void Sip::HandleUdpPacket(const char *p) {
     iLastCSeq = GrepInteger(p, "\nCSeq: ");
     Ok(p);
   }
+  else if (strstr(p, "OPTIONS") == p) {
+    iLastCSeq = GrepInteger(p, "\nCSeq: ");
+    Ok(p);
+  }
 }
 
 
