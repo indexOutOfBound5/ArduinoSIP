@@ -422,7 +422,7 @@ void Sip::Register(const char *p) {
   AddSipLine("From: \"%s\" <sip:%s@%s>;tag=%010u", pSipUser, pSipUser, pSipDomain, tagid);
   AddSipLine("Via: SIP/2.0/UDP %s:%i;branch=%010u;rport=%i", pMyIp, iMyPort, branchid, iMyPort);
   AddSipLine("To: <sip:%s@%s>", pSipUser, pSipDomain);
-  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, MyIp, iMyPort);
+  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, pMyIp, iMyPort);
 
   if ( p )
   {
@@ -508,7 +508,7 @@ void Sip::Invite(const char *p) {
   AddSipLine("From: \"%s\"  <sip:%s@%s>;tag=%010u", pDialDesc, pSipUser, pSipDomain, tagid);
   AddSipLine("Via: SIP/2.0/UDP %s:%i;branch=%010u;rport=%i", pMyIp, iMyPort, branchid, iMyPort);
   AddSipLine("To: <sip:%s@%s>", pDialNr, pSipDomain);
-  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, MyIp, iMyPort);
+  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, pMyIp, iMyPort);
 
   if ( p )
   {
