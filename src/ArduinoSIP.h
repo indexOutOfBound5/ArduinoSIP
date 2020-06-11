@@ -97,6 +97,7 @@ class Sip
     void        Bye(int cseq);
     void        Ok(const char *pIn);
     void        Invite(const char *pIn = 0);
+    void        Register(const char *pIn = 0);
 
     uint32_t    Millis();
     uint32_t    Random();
