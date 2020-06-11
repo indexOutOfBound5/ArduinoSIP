@@ -51,13 +51,13 @@ class Sip
 {
   public:
     Sip(char *pBuf, size_t lBuf);
-	~Sip();
-
+    ~Sip();
 
     void Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipDomain, const char *SipPassWd, int MaxDialSec = 10);
     bool Dial(const char *DialNr, const char *DialDesc = "");
     void Processing(char *pBuf, size_t lBuf);
     bool IsBusy() { return iRingTime != 0; }
+    void Register(const char *pIn = 0);
 
   private:
     char       *pbuf;
@@ -84,10 +84,10 @@ class Sip
     int         iDialRetries;
     int         iLastCSeq;
 
-	WiFiUDP 	Udp;
+    WiFiUDP 	Udp;
 
-	void        HandleUdpPacket(const char *p);
-	void        AddSipLine(const char* constFormat , ... );
+    void        HandleUdpPacket(const char *p);
+    void        AddSipLine(const char* constFormat , ... );
     bool        AddCopySipLine(const char *p, const char *psearch);
     bool        ParseParameter(char *dest, int destlen, const char *name, const char *line, char cq = '\"');
     bool        ParseReturnParams(const char *p);
@@ -97,7 +97,6 @@ class Sip
     void        Bye(int cseq);
     void        Ok(const char *pIn);
     void        Invite(const char *pIn = 0);
-    void        Register(const char *pIn = 0);
 
     uint32_t    Millis();
     uint32_t    Random();
