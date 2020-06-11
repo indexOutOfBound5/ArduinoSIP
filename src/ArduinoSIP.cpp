@@ -368,6 +368,32 @@ void Sip::Ok(const char *p) {
   SendUdp();
 }
 
+void Sip::Message(const char *destinationUser, const char *destinationDomain, const char *payloadData, int payloadLength) {
+  int   cseq = 1;
+
+  callid = Random();
+  tagid = Random();
+  branchid = Random();
+
+  pbuf[0] = 0;
+  AddSipLine("MESSAGE sip:%s@%s SIP/2.0", destinationUser, destinationDomain);
+  AddSipLine("Via: SIP/2.0/UDP %s:%i;branch=%010u;rport=%i", pMyIp, iMyPort, branchid, iMyPort);
+  AddSipLine("To: <sip:%s@%s>", pSipUser, pSipDomain);
+  AddSipLine("From: \"%s\" <sip:%s@%s>;tag=%010u", pSipUser, pSipUser, pSipDomain, tagid);
+  AddSipLine("Call-ID: %010u@%s",  callid, pMyIp);
+  AddSipLine("CSeq: %i MESSAGE",  cseq);
+  AddSipLine("Max-Forwards: 70");
+  AddSipLine("User-Agent: ESP2866 device");
+  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, pMyIp, iMyPort);
+  AddSipLine("Content-Type: media/emotion");
+  AddSipLine("Content-Length: %d", payloadLength);
+  AddSipLine("");
+  AddSipLine(payloadData);
+  AddSipLine("");
+
+  SendUdp();
+}
+
 // SIP Register without or with the response from peer
 void Sip::Register(const char *p) {
 

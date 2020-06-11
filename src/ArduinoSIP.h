@@ -59,6 +59,12 @@ class Sip
     bool IsBusy() { return iRingTime != 0; }
     void Register(const char *pIn = 0);
 
+    // destination Uri wil be in the format of:
+    // * destinationUser = the user ID (eg. meghan or russell)
+    // * destinationDomain = the domain (eg. mhalton.com, or mcconnachie.ca)
+    // * payloadData = will be the base 64 encoded emotion type and intensity level which are both uint8_t data types
+    void Message(const char *destinationUser, const char *destinationDomain, const char *payloadData, int payloadLength);
+
   private:
     char       *pbuf;
     size_t      lbuf;
