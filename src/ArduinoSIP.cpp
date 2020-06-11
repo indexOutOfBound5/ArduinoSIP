@@ -143,6 +143,10 @@ void Sip::HandleUdpPacket(const char *p) {
 
   if ( strstr(p, "SIP/2.0 401 Unauthorized") == p )
   {
+    // Challenge SIP registration with response data (p) to build auth md5 hashes
+    Register(p);
+  }
+  else if ( strstr(p, "SIP/2.0 407 Proxy Authentication Required") == p) {
     Ack(p);
     // call Invite with response data (p) to build auth md5 hashes
     Invite(p);
@@ -413,7 +417,7 @@ void Sip::Register(const char *p) {
   }
 
   pbuf[0] = 0;
-  AddSipLine("REGISTER sip:%s@%s SIP/2.0", pDialNr, pSipIp);
+  AddSipLine("REGISTER sip:%s@%s SIP/2.0", pSipUser, pSipIp);
   AddSipLine("Call-ID: %010u@%s",  callid, pMyIp);
   AddSipLine("CSeq: %i REGISTER",  cseq);
   AddSipLine("Max-Forwards: 70");
