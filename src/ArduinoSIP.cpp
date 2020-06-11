@@ -2,10 +2,10 @@
 
    Copyright (c) 2018 Juergen Liegner  All rights reserved.
    (https://www.mikrocontroller.net/topic/444994)
-   
+
    Copyright (c) 2019 Thorsten Godau (dl9sec)
    (Created an Arduino library from the original code and did some beautification)
-   
+
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
    are met:
@@ -54,22 +54,19 @@ Sip::Sip(char *pBuf, size_t lBuf) {
 
 }
 
+Sip::~Sip() { }
 
-Sip::~Sip() {
-  
-}
+void Sip::Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipDomain, const char *SipPassWd, int MaxDialSec) {
 
-
-void Sip::Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipPassWd, int MaxDialSec) {
-  
   Udp.begin(SipPort);
-  
+
   caRead[0] = 0;
   pbuf[0] = 0;
   pSipIp = SipIp;
   iSipPort = SipPort;
   pSipUser = SipUser;
   pSipPassWd = SipPassWd;
+  pSipDomain = SipDomain;
   pMyIp = MyIp;
   iMyPort = MyPort;
   iAuthCnt = 0;
@@ -79,7 +76,7 @@ void Sip::Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, con
 
 
 bool Sip::Dial(const char *DialNr, const char *DialDesc) {
-  
+
   if ( iRingTime )
     return false;
 
@@ -95,9 +92,9 @@ bool Sip::Dial(const char *DialNr, const char *DialDesc) {
 
 
 void Sip::Processing(char *pBuf, size_t lBuf) {
-	
+
   int packetSize = Udp.parsePacket();
-  
+
   if ( packetSize > 0 )
   {
     pBuf[0] = 0;
@@ -105,25 +102,25 @@ void Sip::Processing(char *pBuf, size_t lBuf) {
     if ( packetSize > 0 )
     {
       pBuf[packetSize] = 0;
-    
+
 #ifdef DEBUGLOG
       IPAddress remoteIp = Udp.remoteIP();
       Serial.printf("\r\n----- read %i bytes from: %s:%i ----\r\n", (int)packetSize, remoteIp.toString().c_str(), Udp.remotePort());
       Serial.print(pBuf);
       Serial.printf("----------------------------------------------------\r\n");
 #endif
-    
+
     }
   }
-  
+
   HandleUdpPacket((packetSize > 0) ? pBuf : 0 );
 }
 
 
 void Sip::HandleUdpPacket(const char *p) {
-  
+
   uint32_t iWorkTime = iRingTime ? (Millis() - iRingTime) : 0;
-  
+
   if ( iRingTime && iWorkTime > iMaxTime )
   {
     // Cancel(3);
@@ -140,7 +137,7 @@ void Sip::HandleUdpPacket(const char *p) {
       delay(30);
       Invite();
     }
-	
+
     return;
   }
 
@@ -187,7 +184,7 @@ void Sip::HandleUdpPacket(const char *p) {
 
 
 void Sip::AddSipLine(const char* constFormat , ... ) {
-  
+
   va_list arglist;
   va_start(arglist, constFormat);
   uint16_t l = (uint16_t)strlen(pbuf);
@@ -222,11 +219,11 @@ bool Sip::AddCopySipLine(const char *p, const char *psearch) {
       *pe = 0;
       AddSipLine("%s", pa);
       *pe = c;
-	  
+
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -246,31 +243,31 @@ bool Sip::ParseParameter(char *dest, int destlen, const char *name, const char *
     {
       strncpy(dest, r, l);
       dest[l] = 0;
-	  
+
       return true;
     }
   }
-  
+
   return false;
 }
 
 
 // Copy Call-ID, From, Via and To from response to caRead using later for BYE or CANCEL the call
 bool Sip::ParseReturnParams(const char *p) {
-  
+
   pbuf[0] = 0;
-  
+
   AddCopySipLine(p, "Call-ID: ");
   AddCopySipLine(p, "From: ");
   AddCopySipLine(p, "Via: ");
   AddCopySipLine(p, "To: ");
-  
+
   if ( strlen(pbuf) >= 2 )
   {
     strcpy(caRead, pbuf);
     caRead[strlen(caRead) - 2] = 0;
   }
-  
+
   return true;
 }
 
@@ -284,17 +281,17 @@ int Sip::GrepInteger(const char *p, const char *psearch) {
   {
     param = atoi(pc + strlen(psearch));
   }
-  
+
   return param;
 }
 
 
 void Sip::Ack(const char *p) {
-  
+
   char ca[32];
- 
+
   bool b = ParseParameter(ca, (int)sizeof(ca), "To: <", p, '>');
- 
+
   if ( !b )
     return;
 
@@ -313,7 +310,7 @@ void Sip::Ack(const char *p) {
 
 
 void Sip::Cancel(int cseq) {
-  
+
   if ( caRead[0] == 0 )
     return;
 
@@ -330,7 +327,7 @@ void Sip::Cancel(int cseq) {
 
 
 void Sip::Bye(int cseq) {
-  
+
   if ( caRead[0] == 0 )
     return;
 
@@ -347,7 +344,7 @@ void Sip::Bye(int cseq) {
 
 
 void Sip::Ok(const char *p) {
-  
+
   pbuf[0] = 0;
   AddSipLine("SIP/2.0 200 OK");
   AddCopySipLine(p, "Call-ID: ");
@@ -359,6 +356,90 @@ void Sip::Ok(const char *p) {
   AddSipLine("");
   SendUdp();
 }
+
+// SIP Register without or with the response from peer
+void Sip::Register(const char *p) {
+
+  // prevent loops
+  if ( p && iAuthCnt > 3 )
+    return;
+
+  // using caRead for temp. store realm and nonce
+  char *caRealm = caRead;
+  char *caNonce = caRead + 128;
+
+  char *haResp = 0;
+  int   cseq = 1;
+
+  if ( !p )
+  {
+    iAuthCnt = 0;
+
+    if ( iDialRetries == 0 )
+    {
+      callid = Random();
+      tagid = Random();
+      branchid = Random();
+    }
+  }
+  else
+  {
+    cseq = 2;
+
+	if (ParseParameter(caRealm, 128, " realm=\"", p) && ParseParameter(caNonce, 128, " nonce=\"", p) )
+    {
+      // using output buffer to build the md5 hashes
+      // store the md5 haResp to end of buffer
+      char *ha1Hex = pbuf;
+      char *ha2Hex = pbuf + 33;
+      haResp = pbuf + lbuf - 34;
+      char *pTemp = pbuf + 66;
+
+      snprintf(pTemp, lbuf - 100, "%s@%s:%s:%s", pSipUser, pSipDomain, caRealm, pSipPassWd);
+      MakeMd5Digest(ha1Hex, pTemp);
+
+      snprintf(pTemp, lbuf - 100, "REGISTER:sip:%s@%s", pSipUser, pSipDomain);
+      MakeMd5Digest(ha2Hex, pTemp);
+
+      snprintf(pTemp, lbuf - 100, "%s:%s:%s", ha1Hex, caNonce, ha2Hex);
+      MakeMd5Digest(haResp, pTemp);
+    }
+    else
+    {
+      caRead[0] = 0;
+
+      return;
+    }
+  }
+
+  pbuf[0] = 0;
+  AddSipLine("REGISTER sip:%s@%s SIP/2.0", pDialNr, pSipIp);
+  AddSipLine("Call-ID: %010u@%s",  callid, pMyIp);
+  AddSipLine("CSeq: %i REGISTER",  cseq);
+  AddSipLine("Max-Forwards: 70");
+  // not needed for fritzbox
+  // AddSipLine("User-Agent: sipdial by jl");
+  AddSipLine("From: \"%s\" <sip:%s@%s>;tag=%010u", pSipUser, pSipUser, pSipDomain, tagid);
+  AddSipLine("Via: SIP/2.0/UDP %s:%i;branch=%010u;rport=%i", pMyIp, iMyPort, branchid, iMyPort);
+  AddSipLine("To: <sip:%s@%s>", pSipUser, pSipDomain);
+  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, MyIp, iMyPort);
+
+  if ( p )
+  {
+    // authentication
+    AddSipLine("Authorization: Digest username=\"%s@%s\", realm=\"%s\", nonce=\"%s\", uri=\"sip:%s@%s\", response=\"%s\"", pSipUser, pSipDomain, caRealm, caNonce, pSipUser, pSipDomain, haResp);
+    iAuthCnt++;
+  }
+
+  AddSipLine("Content-Type: application/sdp");
+  // not needed for fritzbox
+  // AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
+  AddSipLine("Content-Length: 0");
+  AddSipLine("");
+  caRead[0] = 0;
+  SendUdp();
+}
+
 
 
 // Call invite without or with the response from peer
@@ -374,11 +455,11 @@ void Sip::Invite(const char *p) {
 
   char *haResp = 0;
   int   cseq = 1;
-  
+
   if ( !p )
   {
     iAuthCnt = 0;
-	
+
     if ( iDialRetries == 0 )
     {
       callid = Random();
@@ -389,7 +470,7 @@ void Sip::Invite(const char *p) {
   else
   {
     cseq = 2;
-    
+
 	if (    ParseParameter(caRealm, 128, " realm=\"", p)
          && ParseParameter(caNonce, 128, " nonce=\"", p) )
     {
@@ -412,11 +493,11 @@ void Sip::Invite(const char *p) {
     else
     {
       caRead[0] = 0;
-	  
+
       return;
     }
   }
-  
+
   pbuf[0] = 0;
   AddSipLine("INVITE sip:%s@%s SIP/2.0", pDialNr, pSipIp);
   AddSipLine("Call-ID: %010u@%s",  callid, pMyIp);
@@ -424,18 +505,18 @@ void Sip::Invite(const char *p) {
   AddSipLine("Max-Forwards: 70");
   // not needed for fritzbox
   // AddSipLine("User-Agent: sipdial by jl");
-  AddSipLine("From: \"%s\"  <sip:%s@%s>;tag=%010u", pDialDesc, pSipUser, pSipIp, tagid);
+  AddSipLine("From: \"%s\"  <sip:%s@%s>;tag=%010u", pDialDesc, pSipUser, pSipDomain, tagid);
   AddSipLine("Via: SIP/2.0/UDP %s:%i;branch=%010u;rport=%i", pMyIp, iMyPort, branchid, iMyPort);
-  AddSipLine("To: <sip:%s@%s>", pDialNr, pSipIp);
-  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, pMyIp, iMyPort);
-  
+  AddSipLine("To: <sip:%s@%s>", pDialNr, pSipDomain);
+  AddSipLine("Contact: \"%s\" <sip:%s@%s:%i;transport=udp>", pSipUser, pSipUser, MyIp, iMyPort);
+
   if ( p )
   {
     // authentication
-    AddSipLine("Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"sip:%s@%s\", response=\"%s\"", pSipUser, caRealm, caNonce, pDialNr, pSipIp, haResp);
+    AddSipLine("Authorization: Digest username=\"%s@%s\", realm=\"%s\", nonce=\"%s\", uri=\"sip:%s@%s\", response=\"%s\"", pSipUser, pSipDomain, caRealm, caNonce, pSipUser, pSipDomain, haResp);
     iAuthCnt++;
   }
-  
+
   AddSipLine("Content-Type: application/sdp");
   // not needed for fritzbox
   // AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
@@ -453,21 +534,21 @@ void Sip::Invite(const char *p) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 uint32_t Sip::Millis() {
-	
+
   return (uint32_t)millis() + 1;
 }
 
 
 // Generate a 30 bit random number
 uint32_t Sip::Random() {
-	
+
   // return ((((uint32_t)rand())&0x7fff)<<15) + ((((uint32_t)rand())&0x7fff));
   return secureRandom(0x3fffffff);
 }
 
 
 int Sip::SendUdp() {
-	
+
   Udp.beginPacket(pSipIp, iSipPort);
   Udp.write(pbuf, strlen(pbuf));
   Udp.endPacket();
@@ -481,9 +562,9 @@ int Sip::SendUdp() {
 
 
 void Sip::MakeMd5Digest(char *pOutHex33, char *pIn) {
-  
+
   MD5Builder aMd5;
-  
+
   aMd5.begin();
   aMd5.add(pIn);
   aMd5.calculate();

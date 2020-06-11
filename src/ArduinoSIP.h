@@ -2,11 +2,11 @@
 
    Copyright (c) 2018 Juergen Liegner  All rights reserved.
    (https://www.mikrocontroller.net/topic/444994)
-   
+
    Copyright (c) 2019 Thorsten Godau (dl9sec)
    (Created an Arduino library encapsulation from the original code and did
    some beautification)
-   
+
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
    are met:
@@ -46,19 +46,19 @@
 #endif
 
 #include <WiFiUdp.h>
-   
+
 class Sip
 {
   public:
     Sip(char *pBuf, size_t lBuf);
 	~Sip();
-    
-	
-	void        Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipPassWd, int MaxDialSec = 10);
-    bool        Dial(const char *DialNr, const char *DialDesc = "");
-	void		Processing(char *pBuf, size_t lBuf);
-    bool        IsBusy() { return iRingTime != 0; }	
-	
+
+
+    void Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipDomain, const char *SipPassWd, int MaxDialSec = 10);
+    bool Dial(const char *DialNr, const char *DialDesc = "");
+    void Processing(char *pBuf, size_t lBuf);
+    bool IsBusy() { return iRingTime != 0; }
+
   private:
     char       *pbuf;
     size_t      lbuf;
@@ -72,6 +72,7 @@ class Sip
     int         iMyPort;
     const char *pDialNr;
     const char *pDialDesc;
+    const char *pSipDomain;
 
     uint32_t    callid;
     uint32_t    tagid;
@@ -82,9 +83,9 @@ class Sip
     uint32_t    iMaxTime;
     int         iDialRetries;
     int         iLastCSeq;
-    
+
 	WiFiUDP 	Udp;
-	
+
 	void        HandleUdpPacket(const char *p);
 	void        AddSipLine(const char* constFormat , ... );
     bool        AddCopySipLine(const char *p, const char *psearch);
