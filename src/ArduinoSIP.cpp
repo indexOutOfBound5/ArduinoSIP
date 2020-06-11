@@ -183,7 +183,10 @@ void Sip::HandleUdpPacket(const char *p) {
     iLastCSeq = GrepInteger(p, "\nCSeq: ");
     Ok(p);
   }
-
+  else if (strstr(p, "MESSAGE") == p) {
+    iLastCSeq = GrepInteger(p, "\nCSeq: ");
+    Ok(p);
+  }
 }
 
 
@@ -437,7 +440,7 @@ void Sip::Register(const char *p) {
 
   AddSipLine("Content-Type: application/sdp");
   // not needed for fritzbox
-  // AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
+  AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
   AddSipLine("Content-Length: 0");
   AddSipLine("");
   caRead[0] = 0;
@@ -523,7 +526,7 @@ void Sip::Invite(const char *p) {
 
   AddSipLine("Content-Type: application/sdp");
   // not needed for fritzbox
-  // AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
+  AddSipLine("Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
   AddSipLine("Content-Length: 0");
   AddSipLine("");
   caRead[0] = 0;
