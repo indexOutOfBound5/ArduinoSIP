@@ -55,7 +55,7 @@ class Sip
 
     void Init(const char *SipIp, int SipPort, const char *MyIp, int MyPort, const char *SipUser, const char *SipDomain, const char *SipPassWd, int MaxDialSec = 10);
     bool Dial(const char *DialNr, const char *DialDesc = "");
-    void Processing(char *pBuf, size_t lBuf);
+    void Processing(char *pBuf, size_t lBuf, bool *gotEmote);
     bool IsBusy() { return iRingTime != 0; }
     void Register(const char *pIn = 0);
 
@@ -63,6 +63,7 @@ class Sip
     // * destinationUser = the user ID (eg. meghan or russell)
     // * destinationDomain = the domain (eg. mhalton.com, or mcconnachie.ca)
     // * payloadData = will be the base 64 encoded emotion type and intensity level which are both uint8_t data types
+    void getMessage(char *emoteMsg, int msgLen, const char *p, int contLen);
     void Message(const char *destinationUser, const char *destinationDomain, const char *payloadData, int payloadLength);
 
   private:
@@ -92,7 +93,7 @@ class Sip
 
     WiFiUDP 	Udp;
 
-    void        HandleUdpPacket(const char *p);
+    void        HandleUdpPacket(const char *p, bool *gotEmote);
     void        AddSipLine(const char* constFormat , ... );
     bool        AddCopySipLine(const char *p, const char *psearch);
     bool        ParseParameter(char *dest, int destlen, const char *name, const char *line, char cq = '\"');

@@ -91,7 +91,7 @@ bool Sip::Dial(const char *DialNr, const char *DialDesc) {
 }
 
 
-void Sip::Processing(char *pBuf, size_t lBuf) {
+void Sip::Processing(char *pBuf, size_t lBuf, bool *gotEmote) {
 
   int packetSize = Udp.parsePacket();
 
@@ -113,11 +113,16 @@ void Sip::Processing(char *pBuf, size_t lBuf) {
     }
   }
 
-  HandleUdpPacket((packetSize > 0) ? pBuf : 0 );
+  if(packetSize > 0) {
+    HandleUdpPacket(pBuf, gotEmote);
+  }
+  else {
+    HandleUdpPacket(0,NULL);
+  }
 }
 
 
-void Sip::HandleUdpPacket(const char *p) {
+void Sip::HandleUdpPacket(const char *p, bool *gotEmote) {
 
   uint32_t iWorkTime = iRingTime ? (Millis() - iRingTime) : 0;
 
@@ -186,6 +191,7 @@ void Sip::HandleUdpPacket(const char *p) {
   else if (strstr(p, "MESSAGE") == p) {
     iLastCSeq = GrepInteger(p, "\nCSeq: ");
     Ok(p);
+    *gotEmote = true;
   }
   else if (strstr(p, "OPTIONS") == p) {
     iLastCSeq = GrepInteger(p, "\nCSeq: ");
@@ -389,9 +395,20 @@ void Sip::Message(const char *destinationUser, const char *destinationDomain, co
   AddSipLine("Content-Length: %d", payloadLength);
   AddSipLine("");
   AddSipLine(payloadData);
-  AddSipLine("");
 
   SendUdp();
+}
+
+void Sip::getMessage(char *emoteMsg, int msgLen, const char *p, int contLen) {
+  char *psearch = "Content-Length: ";
+  const char *pc = strstr(p, psearch);
+
+  if ( pc )
+  {
+    int contLen = 9;//atoi(pc + strlen(psearch) + 1);
+    Serial.printf("\r\n-~*~- reading %i bytes from message -~*~-\r\n",contLen );
+    emoteMsg = strncpy(emoteMsg, (pc + strlen(psearch) + 2 + 3), contLen);
+  }
 }
 
 // SIP Register without or with the response from peer
@@ -450,7 +467,7 @@ void Sip::Register(const char *p) {
   }
 
   pbuf[0] = 0;
-  AddSipLine("REGISTER sip:%s@%s SIP/2.0", pSipUser, pSipIp);
+  AddSipLine("REGISTER sip:%s@%s SIP/2.0", pSipUser, pSipDomain);
   AddSipLine("Call-ID: %010u@%s",  callid, pMyIp);
   AddSipLine("CSeq: %i REGISTER",  cseq);
   AddSipLine("Max-Forwards: 70");
